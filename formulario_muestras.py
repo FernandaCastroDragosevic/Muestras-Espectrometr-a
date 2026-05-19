@@ -1,14 +1,12 @@
-
 import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-from io import BytesIO
 
 st.set_page_config(layout="wide")
 st.title("📋 Ingreso de Muestras")
 
-archivo = "datos_muestras.xlsx"
+archivo = "datos_muestras.csv"
 
 # 🔹 INICIALIZAR VARIABLES
 if "from_val" not in st.session_state:
@@ -36,8 +34,6 @@ with st.form("formulario"):
     st.subheader("Datos principales")
 
     hole_id = st.text_input("Hole ID")
-
-    # ✅ NUEVO CAMPO USUARIO
     usuario = st.text_input("Usuario", value=st.session_state.usuario)
 
     col1, col2 = st.columns(2)
@@ -72,7 +68,6 @@ with st.form("formulario"):
     reset = colB.form_submit_button("🔄 RESET")
     eliminar = colC.form_submit_button("🧹 ELIMINAR ÚLTIMA")
 
-
 # 🔹 VALIDACIÓN
 def validar():
     if hole_id.strip() == "":
@@ -85,17 +80,15 @@ def validar():
         st.error("Debe ingresar Sample ID ❌")
         return False
     if tipo == "Ocurrencias Especiales" and comentarios.strip() == "":
-        st.error("Debe agregar detalle en comentarios ⚠️ ❌")
+        st.error("Debe agregar detalle en comentarios ❌")
         return False
     return True
-
 
 # 🔹 GUARDAR
 if submit:
 
     if validar():
 
-        # ✅ guardar usuario en sesión (para persistencia)
         st.session_state.usuario = usuario
 
         nueva = {
@@ -110,12 +103,12 @@ if submit:
         }
 
         if os.path.exists(archivo):
-            df = pd.read_excel(archivo)
+            df = pd.read_csv(archivo)
             df = pd.concat([df, pd.DataFrame([nueva])], ignore_index=True)
         else:
             df = pd.DataFrame([nueva])
 
-        df.to_excel(archivo, index=False)
+        df.to_csv(archivo, index=False)
         st.success("✔️ Muestra guardada")
 
         # 🔹 LÓGICA AVANCE
@@ -149,7 +142,6 @@ if submit:
 
         st.rerun()
 
-
 # 🔹 RESET
 if reset:
     st.session_state.from_val = 0
@@ -162,22 +154,20 @@ if reset:
     st.session_state.sin_coincidencias_key = f"sin_{datetime.now().timestamp()}"
     st.rerun()
 
-
 # 🔹 ELIMINAR ÚLTIMA
 if eliminar:
     if os.path.exists(archivo):
-        df = pd.read_excel(archivo)
+        df = pd.read_csv(archivo)
         if len(df) > 0:
             df = df.iloc[:-1]
-            df.to_excel(archivo, index=False)
+            df.to_csv(archivo, index=False)
             st.success("Última muestra eliminada ✅")
             st.rerun()
-
 
 # 🔹 TABLA + EXPORTAR
 if os.path.exists(archivo):
 
-    df = pd.read_excel(archivo)
+    df = pd.read_csv(archivo)
 
     st.markdown("---")
     st.subheader("📊 Datos del día")
@@ -185,18 +175,16 @@ if os.path.exists(archivo):
     st.dataframe(df, use_container_width=True)
 
     fecha = datetime.now().strftime("%Y-%m-%d")
-
-    output = BytesIO()
-    df.to_excel(output, index=False)
+    output = df.to_csv(index=False).encode("utf-8")
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.download_button(
             "⬇️ Descargar base del día",
-            data=output.getvalue(),
-            file_name=f"muestras_{fecha}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            data=output,
+            file_name=f"muestras_{fecha}.csv",
+            mime="text/csv"
         )
 
     with col2:
@@ -222,4 +210,5 @@ if os.path.exists(archivo):
                 st.success("✅ Nueva base iniciada")
                 st.session_state.confirmar_reset = False
                 st.rerun()
+
 
